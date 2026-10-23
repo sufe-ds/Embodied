@@ -342,7 +342,12 @@ class QiRobot(RobotPort):
             self._invoke("ALMotion", "moveTo", (float(x), float(y), float(theta)))
 
     def stop_all(self) -> None:
-        for service, method in (("ALMotion", "killAll"), ("ALTextToSpeech", "stopAll")):
+        # 官方行为不受 ALMotion.killAll 控制，必须单独停
+        for service, method in (
+            ("ALMotion", "killAll"),
+            ("ALTextToSpeech", "stopAll"),
+            ("ALBehaviorManager", "stopAllBehaviors"),
+        ):
             try:
                 self._invoke(service, method)
             except Exception:  # noqa: BLE001 - 急停尽力而为

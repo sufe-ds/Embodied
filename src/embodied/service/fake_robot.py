@@ -29,6 +29,7 @@ class FakeRobot(RobotPort):
         self._volume = 50
         self._tts_language: str | None = None
         self._camera_started = False
+        self.calls: list[tuple[str, str]] = []
 
     # -- 生命周期 / 状态 ---------------------------------------------------
     @property
@@ -86,7 +87,13 @@ class FakeRobot(RobotPort):
         self._awake = True
 
     def stop_all(self) -> None:
-        pass
+        self.calls.extend(
+            (
+                ("ALMotion", "killAll"),
+                ("ALTextToSpeech", "stopAll"),
+                ("ALBehaviorManager", "stopAllBehaviors"),
+            )
+        )
 
     def play_trajectory(self, movement: Movement) -> MovementResult:
         time.sleep(0.05)

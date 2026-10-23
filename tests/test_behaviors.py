@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import asyncio
+import threading
 
 import httpx
 import pytest
 
 from embodied.app import create_app
+from embodied.container import build_container
+from embodied.domain.entities import BehaviorResult
 from embodied.domain.errors import UnknownBehaviorError
 from embodied.service.behavior import BehaviorService
 from embodied.service.config import Settings
@@ -94,6 +97,54 @@ def test_run_behavior_polls_until_finished() -> None:
     assert result.name == BEHAVIOR
     assert robot._motion_lock.acquire(timeout=0.1)
     robot._motion_lock.release()
+
+
+def test_stop_all_stops_official_behaviors() -> None:
+    robot = _PollingRobot([])
+    robot._motion_lock.acquire()  # 模拟长动作仍持有运动锁
+    try:
+        robot.stop_all()
+    finally:
+        robot._motion_lock.release()
+    assert ("ALBehaviorManager", "stopAllBehaviors", ()) in robot.calls
+
+
+def test_fake_stop_all_records_behavior_call() -> None:
+    robot = FakeRobot(Settings(dry_run=True))
+    robot.stop_all()
+    assert ("ALBehaviorManager", "stopAllBehaviors") in robot.calls
+
+
+class _BlockingRobot(FakeRobot):
+    def __init__(self) -> None:
+        super().__init__(Settings(dry_run=True))
+        self.started = threading.Event()
+        self.released = threading.Event()
+
+    def run_behavior(self, name: str) -> BehaviorResult:
+        self.started.set()
+        self.released.wait(timeout=5.0)
+        return BehaviorResult(name=name, duration_s=0.0)
+
+    def stop_all(self) -> None:
+        super().stop_all()
+        self.released.set()
+
+
+async def test_cancel_behavior_job_stops_behavior() -> None:
+    settings = Settings(dry_run=True)
+    robot = _BlockingRobot()
+    app = create_app(settings, build_container(settings, robot))
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
+        response = await c.post(f"/api/behaviors/{BEHAVIOR}", json={"wait": False})
+        job_id = response.json()["job_id"]
+        assert robot.started.wait(timeout=2.0)
+        cancel = await c.delete(f"/api/jobs/{job_id}")
+        assert cancel.json()["cancelled"] is True
+        job = (await c.get(f"/api/jobs/{job_id}")).json()
+        assert job["status"] == "cancelled"
+    assert ("ALBehaviorManager", "stopAllBehaviors") in robot.calls
 
 
 def test_run_behavior_holds_motion_lock() -> None:

@@ -110,6 +110,6 @@ uv run embodied serve --dry-run                                   # dry-run 起�
 
 - `qi.Session().connect("tcp://<ip>:9559")`，再用 `session.service("ALTextToSpeech")` 获取服务。
 - `qi` 取代了 Python 2 的 `naoqi.ALProxy`，语法略有不同。
-- 运动类服务（`ALMotion`/`ALRobotPosture`）由 `QiRobot._motion_lock` 串行化，长动作会长时间持有该锁；`stop_all` 故意绕过锁以便随时急停。
+- 运动类服务（`ALMotion`/`ALRobotPosture`/`ALBehaviorManager`）由 `QiRobot._motion_lock` 串行化，长动作会长时间持有该锁；`stop_all` 故意绕过锁以便随时急停，并额外调用 `ALBehaviorManager.stopAllBehaviors` 停止官方行为。
 - 动作模块（`Robots/NAO/movements/*.py`）是 LabVIEW 导出的数据，`main()` 返回 `(Posture, time, movements)`，由 `domain/trajectory.py` 展平后交给 `ALMotion.angleInterpolationBezier`。
 - 新增能力：领域模型放 `domain/`，抽象端口放 `service/ports.py`，具体实现放 `service/`（如 `qi_robot.py`），接口放 `api/`；不要在 `api/` 里直接调用 `qi`。
