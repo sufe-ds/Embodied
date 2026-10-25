@@ -1,8 +1,8 @@
-"""局域网扫描：TCP 探测 NAOqi 端口，定位机器人地址。
+"""局域网扫描：通过 NAOqi 端口与 SSH 标识定位机器人候选。
 
 NAOqi 没有可用的广播发现协议；WSL2 默认 NAT 也转发不了广播，
-因此这里直接并发 TCP 连接 9559，能找到的机器人与网络环境无关。
-端口通不等于一定是 NAO，结果视为候选。
+因此这里并发探测 9559 与 22，并要求 SSH 服务返回有效标识。
+这些条件不代表设备一定是 NAO，结果视为候选。
 """
 
 from __future__ import annotations
@@ -75,7 +75,7 @@ class SubnetRobotLocator(RobotLocator):
                     found.append(futures[future])
 
         found.sort(key=ipaddress.ip_address)
-        return [RobotAddress(host, self.port, self._name(host)) for host in found]
+        return [RobotAddress(host, self.port) for host in found]
 
     def _expand(self, targets: Iterable[str]) -> list[str]:
         hosts: list[str] = []
@@ -122,12 +122,9 @@ class SubnetRobotLocator(RobotLocator):
     def _open(self, host: str, timeout: float) -> bool:
         try:
             with socket.create_connection((host, self.port), timeout=timeout):
-                return True
+                pass
+            with socket.create_connection((host, 22), timeout=timeout) as ssh:
+                ssh.settimeout(timeout)
+                return ssh.recv(255).startswith(b"SSH-")
         except OSError:
             return False
-
-    def _name(self, host: str) -> str | None:
-        try:
-            return socket.gethostbyaddr(host)[0]
-        except OSError:
-            return None

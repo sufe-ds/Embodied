@@ -24,7 +24,7 @@ def build_parser() -> argparse.ArgumentParser:
     discover = commands.add_parser(
         "discover",
         help="扫描局域网中的 NAO 机器人",
-        description="扫描局域网中的 NAO 机器人（并发探测 NAOqi 端口）。",
+        description="扫描局域网中的 NAO 机器人（探测 9559 与 22，并校验 SSH 标识）。",
     )
     add_arguments(discover)
 

@@ -34,7 +34,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m embodied.discover",
-        description="扫描局域网中的 NAO 机器人（并发探测 NAOqi 端口）。",
+        description="扫描局域网中的 NAO 机器人（探测 9559 与 22，并校验 SSH 标识）。",
     )
     add_arguments(parser)
     return parser
@@ -72,14 +72,15 @@ def _report(result: dict) -> None:
     targets = ", ".join(result["targets"]) or "无可用网段"
     print(
         f"扫描 {targets}，用时 {result['elapsed_s']}s，"
-        f"发现 {len(robots)} 个候选（端口开放不等于一定是 NAO）"
+        f"发现 {len(robots)} 个候选："
     )
     for robot in robots:
-        name = robot["name"] or "-"
-        mark = "  (当前 NAO_IP)" if robot["configured"] else ""
-        print(f"  {robot['ip']}:{robot['port']}  {name}{mark}")
+        # name = robot["name"] or "-"
+        # mark = "  (当前 NAO_IP)" if robot["configured"] else ""
+        # print(f"  {robot['ip']}:{robot['port']}  {name}{mark}")
+        print(f"- {robot['ip']}")
     if not robots:
-        print("未找到开放的 NAOqi 端口。请确认机器人已开机、与本机同网段；")
+        print("未找到同时开放 9559 与 22 且 SSH 标识有效的地址。请确认机器人已开机、与本机同网段；")
         print("若本机是容器或 WSL NAT 网段，请显式传入机器人所在网段。")
 
 
