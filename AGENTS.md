@@ -131,6 +131,36 @@ uv run python scripts/nao_vision.py 192.168.2.34
 - 动作取消会标记任务并调用急停，但底层线程/硬件调用的停止是尽力而为，不等于物理安全急停。
 - 摄像头由后台线程持续订阅并缓存最新 JPEG；MJPEG 路由在线程池中读取缓存。
 
+### SSH 直接调试 NAO
+
+需要绕过 Embodied、直接检查机器人时，可使用 `embodied discover` 找到的地址登录。机器人上是 Python 2 环境，执行 `qi` 脚本前必须加载 NAOqi 环境：
+
+```sh
+ssh nao@<NAO_IP>
+source /etc/profile
+python2
+```
+
+```python
+import qi
+
+session = qi.Session()
+session.connect("tcp://127.0.0.1:9559")
+behaviors = session.service("ALBehaviorManager")
+print(behaviors.getRunningBehaviors())
+print(behaviors.getDefaultBehaviors())
+```
+
+- 用 `ps -u nao -o pid,ppid,args` 检查进程，用 `systemctl --user list-units --type=service --all` 检查 NAOqi 用户级服务，用 `journalctl -n 1000 --no-pager` 检查运行日志。
+- 行为包通常位于 `/home/nao/.local/share/PackageManager/apps/`。仅看进程和 `getRunningBehaviors()` 不足以判断代码已停止，还要检查行为脚本中的后台线程、回调和感知订阅；例如 `ALFaceDetection`、`ALSpeechRecognition` 可通过 `getSubscribersInfo()` 检查订阅者。
+- `stopBehavior()` 只保证行为退出运行列表。Choregraphe/Python 行为若通过 `thread.start_new_thread` 等方式启动后台线程，且 `onStop` 没有清理逻辑，线程和订阅可能继续运行，仍会响应人脸、语音等事件。遇到这种残留时，需要重启 NAOqi 才能彻底清除：
+
+```sh
+systemctl --user restart naoqi.service
+```
+
+- 重启 NAOqi 会中断当前机器人动作和客户端调用，执行前应取得用户同意并确保机器人周围安全；SSH 服务本身不需要重启。重启后必须复核运行/默认行为、`ALAutonomousLife.getState()`、感知订阅和相关监听端口，因为自主生活状态和默认行为可能在启动过程中恢复或变化。
+
 ## 测试策略
 
 ```sh
