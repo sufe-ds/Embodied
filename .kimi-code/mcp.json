@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "nao": {
+      "url": "http://localhost:19559/mcp/"
+    }
+  }
+}
