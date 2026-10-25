@@ -144,14 +144,12 @@ uv run python -m pytest
 现有测试完全不需要真实 NAO：
 
 - REST 测试用 `create_app(Settings(dry_run=True))`、HTTPX `ASGITransport` 和 `FakeRobot`，不启动真实服务器。
+- 动作仓储与 REST 测试通过 `tests/conftest.py` 的 `movement_dir` fixture 在 pytest 临时目录生成最小动作模块，不依赖外部动作数据。
+- API 测试构造 `Settings` 时禁用 `.env` 并显式固定认证和安全开关；共享测试配置还会在应用导入前固定 MCP 路径，避免本机配置改变测试前提。
 - 行为与锁测试通过 `QiRobot`/`FakeRobot` 子类、事件和调用记录验证轮询、取消与急停。
 - 发现测试使用 `RobotLocator` 桩和 socket mock，不访问真实网络。
 - 摄像头测试直接覆盖后台流对象的锁回归。
 - 新测试应沿用这些隔离方式，不要在单元/集成测试中连接真实机器人或扫描真实局域网。
-
-注意：测试套件并非完全自包含。`tests/test_movements.py` 直接调用 `default_movement_dir()`，要求该目录真实存在，并包含 `move1`、`getlucky`、`applaud` 等动作；`tests/test_api.py` 的动作流程也要求 `move1` 可用。仅设置 `EMBODIED_MOVEMENTS_DIR` 可以改变应用/API 的动作目录，但不能改变 `test_movements.py` 对默认目录的直接断言。运行完整套件前必须提供兼容的外部动作数据或恢复原始目录布局。
-
-测试还会读取当前 `.env`。涉及默认值或安全开关的测试需要在干净配置下运行，避免本地 `EMBODIED_MCP_PATH`、`EMBODIED_ENABLE_ESCAPE_HATCH` 等覆盖改变测试前提。
 
 ## 安全与部署注意事项
 

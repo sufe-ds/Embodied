@@ -12,8 +12,16 @@ from embodied.service.config import Settings
 
 
 @pytest.fixture
-def app():
-    return create_app(Settings(dry_run=True))
+def app(movement_dir):
+    settings = Settings(
+        _env_file=None,
+        dry_run=True,
+        movement_dir=movement_dir,
+        api_token=None,
+        enable_escape_hatch=False,
+        allowed_services=["ALMotion", "ALMemory"],
+    )
+    return create_app(settings)
 
 
 @pytest.fixture
@@ -95,7 +103,14 @@ async def test_escape_hatch_disabled(client) -> None:
 
 
 async def test_escape_hatch_enabled() -> None:
-    app = create_app(Settings(dry_run=True, enable_escape_hatch=True))
+    settings = Settings(
+        _env_file=None,
+        dry_run=True,
+        enable_escape_hatch=True,
+        api_token=None,
+        allowed_services=["ALMemory"],
+    )
+    app = create_app(settings)
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
         response = await c.post(

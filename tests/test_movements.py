@@ -6,31 +6,27 @@ import pytest
 
 from embodied.domain.errors import UnknownMovementError
 from embodied.domain.trajectory import flatten
-from embodied.service.config import default_movement_dir
 from embodied.service.movement_files import FileMovementRepository
 
 
-def repo() -> FileMovementRepository:
-    return FileMovementRepository(default_movement_dir())
-
-
-def test_default_directory_exists() -> None:
-    assert default_movement_dir().is_dir()
+@pytest.fixture
+def repo(movement_dir) -> FileMovementRepository:
+    return FileMovementRepository(movement_dir)
 
 
 @pytest.mark.parametrize("bad", ["../evil", "a/b", "..", "", "x.py"])
-def test_resolve_rejects_bad_names(bad: str) -> None:
+def test_resolve_rejects_bad_names(repo: FileMovementRepository, bad: str) -> None:
     with pytest.raises(UnknownMovementError):
-        repo().load(bad)
+        repo.load(bad)
 
 
-def test_exists_case_insensitive() -> None:
-    assert repo().exists("getlucky")
-    assert not repo().exists("nope")
+def test_exists_case_insensitive(repo: FileMovementRepository) -> None:
+    assert repo.exists("GETLUCKY")
+    assert not repo.exists("nope")
 
 
-def test_load_move1_shape() -> None:
-    movement = repo().load("move1")
+def test_load_move1_shape(repo: FileMovementRepository) -> None:
+    movement = repo.load("move1")
     assert movement.posture in ("Stand", "")
     assert movement.names
     assert len(movement.names) == len(movement.times) == len(movement.angles)
@@ -38,8 +34,8 @@ def test_load_move1_shape() -> None:
     assert len(movement.angles[0][0]) == 3
 
 
-def test_list_includes_known_moves() -> None:
-    names = {info.name.lower() for info in repo().list()}
+def test_list_includes_known_moves(repo: FileMovementRepository) -> None:
+    names = {info.name.lower() for info in repo.list()}
     assert "move1" in names
     assert "applaud" in names
 
