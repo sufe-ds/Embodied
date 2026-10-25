@@ -23,7 +23,7 @@ class Color:
     value: int
 
     @classmethod
-    def parse(cls, raw: str | int) -> "Color":
+    def parse(cls, raw: str | int) -> Color:
         if isinstance(raw, bool):
             raise ValidationError(f"非法颜色：{raw!r}")
         if isinstance(raw, int):

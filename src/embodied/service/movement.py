@@ -23,7 +23,9 @@ class MovementService:
 
     def ensure_exists(self, name: str) -> None:
         if not self._movements.exists(name):
-            raise UnknownMovementError(f"未知动作：{name}", detail=self._movements.names())
+            raise UnknownMovementError(
+                f"未知动作：{name}", detail=self._movements.names()
+            )
 
     def execute(self, name: str) -> MovementResult:
         movement = self._movements.load(name)

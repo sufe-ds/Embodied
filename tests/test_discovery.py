@@ -16,7 +16,9 @@ from embodied.service.ports import RobotLocator
 
 
 class StubLocator(RobotLocator):
-    def __init__(self, robots: list[RobotAddress], subnets: list[str] | None = None) -> None:
+    def __init__(
+        self, robots: list[RobotAddress], subnets: list[str] | None = None
+    ) -> None:
         self.robots = robots
         self.subnets = subnets or ["10.0.0.0/24"]
         self.calls: list[tuple[list[str], float]] = []

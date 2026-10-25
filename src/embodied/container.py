@@ -22,9 +22,9 @@ from .service import (
 from .service.config import Settings
 from .service.fake_robot import FakeRobot
 from .service.movement_files import FileMovementRepository
+from .service.ports import RobotPort
 from .service.qi_robot import QiRobot
 from .service.thread_jobs import ThreadJobQueue
-from .service.ports import RobotPort
 
 
 @dataclass

@@ -41,7 +41,10 @@ def health(request: Request) -> dict:
             status = container.gateway.status()
         return {"status": "ok", "robot": status}
     except RobotError as exc:
-        return {"status": "degraded", "robot": {"connected": False, "error": exc.message}}
+        return {
+            "status": "degraded",
+            "robot": {"connected": False, "error": exc.message},
+        }
 
 
 @router.get("/api/robot/status")
@@ -61,7 +64,9 @@ def robot_status(request: Request) -> dict:
 # -- 说话 ------------------------------------------------------------------
 @router.post("/api/robot/say")
 def say(request: Request, body: schemas.SayRequest) -> dict:
-    _container(request).speech.say(body.text, language=body.language, animated=body.animated)
+    _container(request).speech.say(
+        body.text, language=body.language, animated=body.animated
+    )
     return {"ok": True, "text": body.text}
 
 
@@ -174,7 +179,9 @@ def camera_snapshot(request: Request, resolution: int | None = None) -> Response
 
 
 @router.get("/api/camera/mjpeg")
-async def camera_mjpeg(request: Request, resolution: int | None = None) -> StreamingResponse:
+async def camera_mjpeg(
+    request: Request, resolution: int | None = None
+) -> StreamingResponse:
     container = _container(request)
     await run_in_threadpool(container.camera.start)
     interval = 1.0 / max(1, container.settings.camera_fps)
@@ -186,10 +193,14 @@ async def camera_mjpeg(request: Request, resolution: int | None = None) -> Strea
             frame = await run_in_threadpool(container.camera.frame)
             if frame:
                 yield (
-                    f"--{_MJPEG_BOUNDARY}\r\n"
-                    f"Content-Type: image/jpeg\r\n"
-                    f"Content-Length: {len(frame)}\r\n\r\n"
-                ).encode() + frame + b"\r\n"
+                    (
+                        f"--{_MJPEG_BOUNDARY}\r\n"
+                        f"Content-Type: image/jpeg\r\n"
+                        f"Content-Length: {len(frame)}\r\n\r\n"
+                    ).encode()
+                    + frame
+                    + b"\r\n"
+                )
             await asyncio.sleep(interval)
 
     return StreamingResponse(

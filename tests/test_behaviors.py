@@ -85,7 +85,11 @@ class _PollingRobot(QiRobot):
         self.calls.append((service, method, tuple(args)))
         if method == "isBehaviorRunning":
             return self._running.pop(0)
-        return ["animations/Stand/Gestures/Hey_1"] if method == "getInstalledBehaviors" else None
+        return (
+            ["animations/Stand/Gestures/Hey_1"]
+            if method == "getInstalledBehaviors"
+            else None
+        )
 
 
 def test_run_behavior_polls_until_finished() -> None:

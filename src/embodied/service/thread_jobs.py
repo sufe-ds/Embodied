@@ -6,7 +6,8 @@ import queue
 import threading
 import time
 import uuid
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from ..domain.entities import Job
 from ..domain.errors import JobNotFoundError
@@ -62,7 +63,7 @@ class ThreadJobQueue(JobQueue):
         if on_cancel is not None:
             try:
                 on_cancel()
-            except Exception:  # 取消失败不改状态
+            except Exception:  # noqa: BLE001, S110 - 取消失败不改状态
                 pass
         return True
 

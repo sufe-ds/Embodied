@@ -26,7 +26,11 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         help="IP 或 CIDR 列表，省略则扫描本机网段与 NAO_IP 所在网段",
     )
     parser.add_argument(
-        "--timeout", type=float, default=0.3, metavar="秒", help="单地址探测超时，默认 0.3"
+        "--timeout",
+        type=float,
+        default=0.3,
+        metavar="秒",
+        help="单地址探测超时，默认 0.3",
     )
     parser.add_argument("--json", action="store_true", help="输出完整 JSON")
 
@@ -70,17 +74,16 @@ def run(args: argparse.Namespace, service: DiscoveryService | None = None) -> in
 def _report(result: dict) -> None:
     robots = result["robots"]
     targets = ", ".join(result["targets"]) or "无可用网段"
-    print(
-        f"扫描 {targets}，用时 {result['elapsed_s']}s，"
-        f"发现 {len(robots)} 个候选："
-    )
+    print(f"扫描 {targets}，用时 {result['elapsed_s']}s，发现 {len(robots)} 个候选：")
     for robot in robots:
         # name = robot["name"] or "-"
         # mark = "  (当前 NAO_IP)" if robot["configured"] else ""
         # print(f"  {robot['ip']}:{robot['port']}  {name}{mark}")
         print(f"- {robot['ip']}")
     if not robots:
-        print("未找到同时开放 9559 与 22 且 SSH 标识有效的地址。请确认机器人已开机、与本机同网段；")
+        print(
+            "未找到同时开放 9559 与 22 且 SSH 标识有效的地址。请确认机器人已开机、与本机同网段；"
+        )
         print("若本机是容器或 WSL NAT 网段，请显式传入机器人所在网段。")
 
 

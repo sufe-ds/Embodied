@@ -11,7 +11,12 @@ from ..domain.errors import RobotError
 
 
 def _error(exc: RobotError) -> dict:
-    return {"ok": False, "error": exc.code, "message": exc.message, "detail": exc.detail}
+    return {
+        "ok": False,
+        "error": exc.code,
+        "message": exc.message,
+        "detail": exc.detail,
+    }
 
 
 def build_mcp(container: Any) -> FastMCP:
@@ -89,7 +94,10 @@ def build_mcp(container: Any) -> FastMCP:
         if container.jobs.busy():
             return {"ok": False, "error": "motion_busy", "message": "有动作正在执行"}
         try:
-            return {"ok": True, "posture": container.motion.go_to_posture(posture, speed)}
+            return {
+                "ok": True,
+                "posture": container.motion.go_to_posture(posture, speed),
+            }
         except RobotError as exc:
             return _error(exc)
 
@@ -205,7 +213,9 @@ def build_mcp(container: Any) -> FastMCP:
 
     # -- LED / 音量 --------------------------------------------------------
     @mcp.tool
-    def set_leds(name: str = "FaceLeds", color: str = "#00A0FF", duration: float = 0.5) -> dict:
+    def set_leds(
+        name: str = "FaceLeds", color: str = "#00A0FF", duration: float = 0.5
+    ) -> dict:
         """设置 LED 颜色，color 形如 #RRGGBB。"""
         try:
             container.led.set_leds(name, color, duration)

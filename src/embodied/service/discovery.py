@@ -39,13 +39,9 @@ class DiscoveryService:
             targets.append(subnet)
         return targets
 
-    def scan(
-        self, targets: list[str] | None = None, timeout_s: float = 0.3
-    ) -> dict:
+    def scan(self, targets: list[str] | None = None, timeout_s: float = 0.3) -> dict:
         hosts = [
-            item.strip()
-            for item in (targets or self.default_targets())
-            if item.strip()
+            item.strip() for item in (targets or self.default_targets()) if item.strip()
         ]
         started = time.perf_counter()
         robots = self._locator.scan(hosts, timeout_s)

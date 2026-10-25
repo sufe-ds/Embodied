@@ -3,8 +3,8 @@
 本层不包含业务逻辑，只做参数校验、调用服务、组织响应。
 """
 
+from .errors import install_handlers
 from .mcp import build_mcp
 from .rest import router
-from .errors import install_handlers
 
-__all__ = ["build_mcp", "router", "install_handlers"]
+__all__ = ["build_mcp", "install_handlers", "router"]

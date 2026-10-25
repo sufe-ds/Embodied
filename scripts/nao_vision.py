@@ -90,9 +90,7 @@ class VisionWindow:
         )
         self.tracking_button.pack(side="left", padx=(6, 0))
 
-        ttk.Separator(controls, orient="vertical").pack(
-            side="left", fill="y", padx=10
-        )
+        ttk.Separator(controls, orient="vertical").pack(side="left", fill="y", padx=10)
 
         ttk.Label(controls, text="姿势").pack(side="left")
         self.posture_var = tk.StringVar()
@@ -106,9 +104,7 @@ class VisionWindow:
         self.posture_box.pack(side="left", padx=(6, 0))
         self.posture_box.bind("<<ComboboxSelected>>", self._posture_changed)
 
-        ttk.Separator(controls, orient="vertical").pack(
-            side="left", fill="y", padx=10
-        )
+        ttk.Separator(controls, orient="vertical").pack(side="left", fill="y", padx=10)
 
         ttk.Label(controls, text="放缩").pack(side="left")
         self.zoom_scale = tk.Scale(
@@ -190,10 +186,8 @@ class VisionWindow:
             self._ui(self._connect_failed, robot, exc)
             return
         try:
-            bionic = bool(
-                robot.call_service("ALMotion", "getBreathEnabled", ["Body"])
-            )
-        except Exception:  # 旧版本 NAOqi 没有呼吸接口，按关闭显示
+            bionic = bool(robot.call_service("ALMotion", "getBreathEnabled", ["Body"]))
+        except Exception:  # noqa: BLE001 - 旧版本 NAOqi 没有呼吸接口，按关闭显示
             bionic = False
         try:
             angles = robot.call_service(
@@ -307,9 +301,7 @@ class VisionWindow:
     def _bionic_worker(self, robot: QiRobot, enabled: bool) -> None:
         try:
             robot.call_service("ALMotion", "setBreathEnabled", ["Body", enabled])
-            robot.call_service(
-                "ALMotion", "setIdlePostureEnabled", ["Body", enabled]
-            )
+            robot.call_service("ALMotion", "setIdlePostureEnabled", ["Body", enabled])
         except Exception as exc:  # noqa: BLE001 - 失败原因直接展示给用户
             self._ui(self._bionic_failed, robot, exc)
             return
@@ -370,9 +362,7 @@ class VisionWindow:
             return
         self._tracking = enabled
         self._tracking_busy = False
-        self.tracking_button.configure(
-            text=f"面部追踪：{'开' if enabled else '关'}"
-        )
+        self.tracking_button.configure(text=f"面部追踪：{'开' if enabled else '关'}")
         self.tracking_button.state(["!disabled"])
         if head is not None:
             self._head_yaw, self._head_pitch = head
@@ -398,7 +388,7 @@ class VisionWindow:
         for method in ("stopTracker", "unregisterAllTargets"):
             try:
                 robot.call_service("ALTracker", method, [])
-            except Exception:  # noqa: BLE001 - 关闭追踪尽力而为
+            except Exception:  # noqa: BLE001, S110 - 关闭追踪尽力而为
                 pass
 
     @staticmethod

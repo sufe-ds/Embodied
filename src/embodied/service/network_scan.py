@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import ipaddress
 import socket
+from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Iterable
 
 from ..domain.entities import RobotAddress
 from ..domain.errors import ValidationError
@@ -100,7 +100,9 @@ class SubnetRobotLocator(RobotLocator):
             try:
                 network = ipaddress.ip_network(target, strict=False)
             except ValueError as exc:
-                raise ValidationError(f"无法解析网段：{target}", detail=str(exc)) from exc
+                raise ValidationError(
+                    f"无法解析网段：{target}", detail=str(exc)
+                ) from exc
             if network.version != 4:
                 raise ValidationError("暂只支持 IPv4 网段", detail=target)
             if network.num_addresses - 2 > self.max_hosts:

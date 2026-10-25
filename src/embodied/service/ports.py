@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from ..domain.entities import (
     BehaviorResult,
@@ -39,7 +40,9 @@ class RobotPort(ABC):
 
     # -- 说话 ---------------------------------------------------------------
     @abstractmethod
-    def say(self, text: str, language: str | None = None, animated: bool = False) -> None: ...
+    def say(
+        self, text: str, language: str | None = None, animated: bool = False
+    ) -> None: ...
 
     @abstractmethod
     def stop_speaking(self) -> None: ...
@@ -58,7 +61,9 @@ class RobotPort(ABC):
     def go_to_posture(self, name: str, speed: float = 0.5) -> str: ...
 
     @abstractmethod
-    def set_angles(self, names: list[str], angles: list[float], speed: float = 0.2) -> None: ...
+    def set_angles(
+        self, names: list[str], angles: list[float], speed: float = 0.2
+    ) -> None: ...
 
     @abstractmethod
     def move(self, x: float, y: float, theta: float) -> None: ...
@@ -124,7 +129,9 @@ class RobotPort(ABC):
 
     # -- 逃生舱 -------------------------------------------------------------
     @abstractmethod
-    def call_service(self, service: str, method: str, args: list | None = None) -> Any: ...
+    def call_service(
+        self, service: str, method: str, args: list | None = None
+    ) -> Any: ...
 
 
 class MovementRepository(ABC):
@@ -177,4 +184,6 @@ class JobQueue(ABC):
     def busy(self) -> bool: ...
 
     @abstractmethod
-    def cancel(self, job_id: str, on_cancel: Callable[[], None] | None = None) -> bool: ...
+    def cancel(
+        self, job_id: str, on_cancel: Callable[[], None] | None = None
+    ) -> bool: ...

@@ -7,33 +7,33 @@
 - 本项目没有数据库，故不单设基础设施层。
 """
 
-from .ports import JobQueue, MovementRepository, RobotLocator, RobotPort
-from .discovery import DiscoveryService
-from .gateway import GatewayService
-from .speech import SpeechService
-from .motion import MotionService
-from .movement import MovementService
+from .audio import AudioService
 from .behavior import BehaviorService
 from .camera import CameraService
-from .led import LedService
-from .audio import AudioService
+from .discovery import DiscoveryService
 from .escape import EscapeHatchService
+from .gateway import GatewayService
 from .jobs import JobService
+from .led import LedService
+from .motion import MotionService
+from .movement import MovementService
+from .ports import JobQueue, MovementRepository, RobotLocator, RobotPort
+from .speech import SpeechService
 
 __all__ = [
-    "RobotPort",
-    "RobotLocator",
-    "MovementRepository",
-    "JobQueue",
-    "DiscoveryService",
-    "GatewayService",
-    "SpeechService",
-    "MotionService",
-    "MovementService",
+    "AudioService",
     "BehaviorService",
     "CameraService",
-    "LedService",
-    "AudioService",
+    "DiscoveryService",
     "EscapeHatchService",
+    "GatewayService",
+    "JobQueue",
     "JobService",
+    "LedService",
+    "MotionService",
+    "MovementRepository",
+    "MovementService",
+    "RobotLocator",
+    "RobotPort",
+    "SpeechService",
 ]

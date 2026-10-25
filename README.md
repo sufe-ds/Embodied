@@ -90,6 +90,10 @@ uv run embodied serve --dry-run
 ## 开发
 
 ```sh
+uv run pre-commit install                                         # 安装 Git 提交钩子
+uv run pre-commit run --all-files                                 # 运行 Ruff lint 与 format
+uv run ruff check .                                               # 仅检查 lint
+uv run ruff format --check .                                      # 仅检查格式
 uv run pytest                                                     # 全部使用 FakeRobot，无需机器人
 uv run embodied serve --dry-run                                   # dry-run 起服务
 ```

@@ -114,7 +114,8 @@ async def test_escape_hatch_enabled() -> None:
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
         response = await c.post(
-            "/api/call", json={"service": "ALMemory", "method": "getData", "args": ["x"]}
+            "/api/call",
+            json={"service": "ALMemory", "method": "getData", "args": ["x"]},
         )
     assert response.status_code == 200
     assert response.json()["result"]["fake"] is True

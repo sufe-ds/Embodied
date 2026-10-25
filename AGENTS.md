@@ -20,7 +20,7 @@ Embodied 是 NAO 机器人的具身智能交互项目，使用 Python 3.12 和 N
 - `.env.example` 是配置模板；`.env` 被 Git 忽略。
 - `opencode.json` 和 `.kimi-code/mcp.json` 将 Agent 客户端指向本地 MCP 端点。
 
-仓库中没有 CI 工作流、Docker/Compose、Makefile、独立的代码检查或类型检查配置，也没有自动化部署脚本。
+仓库中没有 CI 工作流、Docker/Compose、Makefile、类型检查配置或自动化部署脚本。代码检查与格式化使用 Ruff，并通过 pre-commit 在提交前运行。
 
 ## 架构与模块划分
 
@@ -116,7 +116,7 @@ uv run python scripts/nao_vision.py 192.168.2.34
 
 - 文档、模块 docstring 和面向用户的错误消息主要使用中文；新增内容保持这一语言习惯。
 - 普遍使用 `from __future__ import annotations`、类型标注、dataclass 和清晰的依赖注入；不可变领域数据使用 `frozen=True`。
-- 没有配置强制格式化器或 linter。修改应匹配现有命名、导入顺序和格式，不要假设存在 Ruff、Black、mypy 等检查命令。
+- 使用 Ruff 做格式化与 lint，配置位于 `pyproject.toml`；提交前由 `.pre-commit-config.yaml` 中的本地钩子运行 `uv run ruff check --fix` 和 `uv run ruff format`。开发时先执行 `uv run pre-commit install`，可用 `uv run pre-commit run --all-files` 检查整个仓库。
 - 新增能力时，领域模型放入 `domain/`，抽象放入 `service/ports.py`，应用服务和具体实现放入 `service/`，REST/MCP 入口放入 `api/`，最后在 `container.py` 装配。
 - 同时维护 REST 与 MCP 的语义和错误行为；REST 请求字段在 `api/schemas.py` 校验，MCP 通过工具签名暴露参数。
 - 硬件/外部调用错误应在适配边界转换为 `RobotError` 子类，让 API 错误码保持稳定。

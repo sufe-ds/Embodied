@@ -51,7 +51,7 @@ class FileMovementRepository(MovementRepository):
         for path in sorted(self._candidates().values()):
             try:
                 infos.append(self.info(path.stem))
-            except Exception:  # 单个坏文件不影响整体
+            except Exception:  # noqa: BLE001, S112 - 单个坏文件不影响整体
                 continue
         return infos
 
@@ -70,7 +70,11 @@ class FileMovementRepository(MovementRepository):
         posture, _time_hint, raw = self._load(path).main()
         names, times, angles = flatten(raw)
         return Movement(
-            name=path.stem, posture=posture or "", names=names, times=times, angles=angles
+            name=path.stem,
+            posture=posture or "",
+            names=names,
+            times=times,
+            angles=angles,
         )
 
     # -- 加载 ---------------------------------------------------------------

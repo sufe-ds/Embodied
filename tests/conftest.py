@@ -7,18 +7,17 @@ from pathlib import Path
 
 import pytest
 
-
 os.environ["EMBODIED_MCP_PATH"] = "/mcp"
 
 
-_MOVEMENT_SOURCE = '''\
+_MOVEMENT_SOURCE = """\
 def main():
     return (
         "Stand",
         1.0,
         [["HeadYaw", [[0.0, 0.1, [3, 0.0, 0.0], [3, 0.0, 0.0]]]]],
     )
-'''
+"""
 
 
 @pytest.fixture

@@ -17,7 +17,9 @@ class RobotError(Exception):
         self.detail = detail
 
     def to_dict(self) -> dict:
-        return {"error": {"code": self.code, "message": self.message, "detail": self.detail}}
+        return {
+            "error": {"code": self.code, "message": self.message, "detail": self.detail}
+        }
 
 
 class RobotUnreachableError(RobotError):

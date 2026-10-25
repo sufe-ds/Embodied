@@ -11,7 +11,9 @@ class SpeechService:
         self._robot = robot
         self._default_language = default_language
 
-    def say(self, text: str, language: str | None = None, animated: bool = False) -> None:
+    def say(
+        self, text: str, language: str | None = None, animated: bool = False
+    ) -> None:
         self._robot.say(text, language or self._default_language, animated)
 
     def stop(self) -> None:

@@ -13,8 +13,9 @@ import io
 import threading
 import time
 import uuid
+from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Any, Iterator
+from typing import Any
 
 import qi
 from PIL import Image
@@ -62,7 +63,7 @@ def to_jsonable(value: Any) -> Any:
 class CameraStreamer:
     """后台持续订阅摄像头，缓存最新一帧 JPEG。"""
 
-    def __init__(self, robot: "QiRobot", camera: int, resolution: int, fps: int) -> None:
+    def __init__(self, robot: QiRobot, camera: int, resolution: int, fps: int) -> None:
         self.robot = robot
         self.camera = camera
         self.resolution = resolution
@@ -126,7 +127,7 @@ class CameraStreamer:
         finally:
             try:
                 video.unsubscribe(self._handle)
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001, S110
                 pass
             self._handle = None
 
@@ -153,7 +154,9 @@ class CameraStreamer:
         # 注意：_frame_lock 不可重入，这里直接在持锁状态下计算 age，
         # 不能调用 frame_age()（它会再次获取同一把锁导致死锁）。
         with self._frame_lock:
-            age = None if self._frame is None else round(time.time() - self._frame_ts, 3)
+            age = (
+                None if self._frame is None else round(time.time() - self._frame_ts, 3)
+            )
             return {
                 "camera": self.camera,
                 "resolution": self.resolution,
@@ -195,7 +198,7 @@ class QiRobot(RobotPort):
             return
         try:
             self._session = connect(self.settings.nao_ip, self.settings.nao_port)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             raise RobotUnreachableError(
                 f"无法连接 NAO {self.settings.nao_ip}:{self.settings.nao_port}",
                 detail=str(exc),
@@ -208,7 +211,7 @@ class QiRobot(RobotPort):
         if self._session is not None:
             try:
                 self._session.close()
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001, S110
                 pass
             self._session = None
 
@@ -219,7 +222,7 @@ class QiRobot(RobotPort):
         if proxy is None:
             try:
                 proxy = self._session.service(service)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 raise ServiceUnavailableError(
                     f"服务不可用：{service}", detail=str(exc)
                 ) from exc
@@ -236,7 +239,7 @@ class QiRobot(RobotPort):
             return func(*args)
         except RobotError:
             raise
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             raise RobotCallError(f"{service}.{method} 调用失败：{exc}") from exc
 
     def _acquire(self, lock: threading.RLock, timeout: float | None) -> None:
@@ -254,7 +257,9 @@ class QiRobot(RobotPort):
         finally:
             self._motion_lock.release()
 
-    def _call(self, service: str, method: str, *args: Any, timeout: float | None = None) -> Any:
+    def _call(
+        self, service: str, method: str, *args: Any, timeout: float | None = None
+    ) -> Any:
         lock = self._motion_lock if service in _MOTION_SERVICES else self._call_lock
         self._acquire(lock, timeout)
         try:
@@ -280,7 +285,9 @@ class QiRobot(RobotPort):
         }
 
     # -- 说话 ---------------------------------------------------------------
-    def say(self, text: str, language: str | None = None, animated: bool = False) -> None:
+    def say(
+        self, text: str, language: str | None = None, animated: bool = False
+    ) -> None:
         text = (text or "").strip()
         if not text:
             return
@@ -325,7 +332,9 @@ class QiRobot(RobotPort):
         self._posture = name
         return name
 
-    def set_angles(self, names: list[str], angles: list[float], speed: float = 0.2) -> None:
+    def set_angles(
+        self, names: list[str], angles: list[float], speed: float = 0.2
+    ) -> None:
         if len(names) != len(angles):
             raise ValidationError("names 与 angles 长度不一致")
         with self._motion():
@@ -350,7 +359,7 @@ class QiRobot(RobotPort):
         ):
             try:
                 self._invoke(service, method)
-            except Exception:  # noqa: BLE001 - 急停尽力而为
+            except Exception:  # noqa: BLE001, S110 - 急停尽力而为
                 pass
 
     def play_trajectory(self, movement: Movement) -> MovementResult:
@@ -361,7 +370,9 @@ class QiRobot(RobotPort):
             self._wake()
             if movement.posture:
                 try:
-                    self._invoke("ALRobotPosture", "goToPosture", (movement.posture, 0.5))
+                    self._invoke(
+                        "ALRobotPosture", "goToPosture", (movement.posture, 0.5)
+                    )
                 except RobotError:
                     pass
             self._invoke(
@@ -471,7 +482,12 @@ class QiRobot(RobotPort):
             raise ValidationError("vocabulary 不能为空")
         token = f"embodied_asr_{uuid.uuid4().hex[:6]}"
         self._call("ALSpeechRecognition", "setLanguage", language or "Chinese")
-        self._call("ALSpeechRecognition", "setVocabulary", list(vocabulary), bool(word_spotting))
+        self._call(
+            "ALSpeechRecognition",
+            "setVocabulary",
+            list(vocabulary),
+            bool(word_spotting),
+        )
         self._call("ALSpeechRecognition", "subscribe", token)
         try:
             try:

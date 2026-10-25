@@ -36,7 +36,13 @@ def test_serve_options_override_settings() -> None:
 
 
 def test_serve_without_options_keeps_defaults(monkeypatch) -> None:
-    for name in ("NAO_IP", "NAO_PORT", "EMBODIED_HOST", "EMBODIED_PORT", "EMBODIED_DRY_RUN"):
+    for name in (
+        "NAO_IP",
+        "NAO_PORT",
+        "EMBODIED_HOST",
+        "EMBODIED_PORT",
+        "EMBODIED_DRY_RUN",
+    ):
         monkeypatch.delenv(name, raising=False)
 
     settings = cli.build_settings(cli.build_parser().parse_args(["serve"]))

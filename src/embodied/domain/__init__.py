@@ -12,7 +12,6 @@ from .entities import (
     RobotAddress,
     SpeechResult,
 )
-from .values import Color, JobStatus
 from .errors import (
     ActionTimeoutError,
     ForbiddenCallError,
@@ -27,26 +26,27 @@ from .errors import (
     UnknownServiceMethodError,
     ValidationError,
 )
+from .values import Color, JobStatus
 
 __all__ = [
+    "ActionTimeoutError",
+    "Color",
+    "ForbiddenCallError",
     "Job",
+    "JobNotFoundError",
+    "JobStatus",
+    "MotionBusyError",
     "Movement",
     "MovementInfo",
     "MovementResult",
     "RobotAddress",
-    "SpeechResult",
-    "Color",
-    "JobStatus",
+    "RobotCallError",
     "RobotError",
     "RobotUnreachableError",
     "ServiceUnavailableError",
-    "RobotCallError",
-    "UnknownServiceMethodError",
+    "SpeechResult",
     "UnknownMovementError",
     "UnknownPostureError",
-    "MotionBusyError",
-    "ForbiddenCallError",
-    "ActionTimeoutError",
-    "JobNotFoundError",
+    "UnknownServiceMethodError",
     "ValidationError",
 ]

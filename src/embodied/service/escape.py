@@ -33,7 +33,9 @@ class EscapeHatchService:
                 "逃生舱未启用（设置 EMBODIED_ENABLE_ESCAPE_HATCH=1 开启）"
             )
         if "*" not in self._allowed and service not in self._allowed:
-            raise ForbiddenCallError(f"服务 {service} 不在白名单", detail=list(self._allowed))
+            raise ForbiddenCallError(
+                f"服务 {service} 不在白名单", detail=list(self._allowed)
+            )
         if _is_denied(method):
             raise ForbiddenCallError(f"方法 {method} 被禁止")
         return self._robot.call_service(service, method, args)

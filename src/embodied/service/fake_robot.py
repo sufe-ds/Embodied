@@ -8,12 +8,24 @@ import time
 from PIL import Image
 
 from ..domain.entities import BehaviorResult, Movement, MovementResult, SpeechResult
-from ..domain.errors import ServiceUnavailableError, UnknownPostureError, ValidationError
+from ..domain.errors import (
+    ServiceUnavailableError,
+    UnknownPostureError,
+    ValidationError,
+)
 from ..domain.values import Color
 from .config import Settings
 from .ports import RobotPort
 
-_POSTURES = ["Stand", "StandInit", "StandZero", "Crouch", "Sit", "LyingBelly", "LyingBack"]
+_POSTURES = [
+    "Stand",
+    "StandInit",
+    "StandZero",
+    "Crouch",
+    "Sit",
+    "LyingBelly",
+    "LyingBack",
+]
 _BEHAVIORS = [
     "animations/Stand/Gestures/Hey_1",
     "animations/Stand/Gestures/BowShort_1",
@@ -56,7 +68,9 @@ class FakeRobot(RobotPort):
         }
 
     # -- 说话 --------------------------------------------------------------
-    def say(self, text: str, language: str | None = None, animated: bool = False) -> None:
+    def say(
+        self, text: str, language: str | None = None, animated: bool = False
+    ) -> None:
         self._tts_language = language or "Chinese"
 
     def stop_speaking(self) -> None:
@@ -80,7 +94,9 @@ class FakeRobot(RobotPort):
         self._posture = name
         return name
 
-    def set_angles(self, names: list[str], angles: list[float], speed: float = 0.2) -> None:
+    def set_angles(
+        self, names: list[str], angles: list[float], speed: float = 0.2
+    ) -> None:
         self._awake = True
 
     def move(self, x: float, y: float, theta: float) -> None:
