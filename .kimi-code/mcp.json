@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "nao": {
+    "robot": {
       "url": "http://localhost:19559/mcp/"
     }
   }
