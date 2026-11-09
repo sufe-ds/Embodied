@@ -13,7 +13,7 @@ from .discover import add_arguments, configure_stdio, run
 from .service.config import Settings
 from .service.discovery import DiscoveryService
 
-_SERVE_FIELDS = ("nao_ip", "nao_port", "host", "port", "log_level")
+_SERVE_FIELDS = ("host", "port", "log_level")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -34,14 +34,17 @@ def build_parser() -> argparse.ArgumentParser:
         description="启动 REST + MCP 服务；未给出的参数回落到环境变量 / .env。",
     )
     serve.add_argument(
-        "--robot-ip", dest="nao_ip", metavar="IP", help="机器人 IP（默认取 NAO_IP）"
+        "--robot",
+        choices=["nao", "pi"],
+        help="机器人类型：NAO 或 TonyPi（默认取 EMBODIED_ROBOT，否则 nao）",
     )
+    serve.add_argument("--robot-ip", dest="robot_ip", metavar="IP", help="机器人 IP")
     serve.add_argument(
         "--robot-port",
-        dest="nao_port",
+        dest="robot_port",
         type=int,
         metavar="PORT",
-        help="NAOqi 端口（默认取 NAO_PORT，否则 9559）",
+        help="NAOqi 或 TonyPi RPC 端口（默认分别为 9559 / 9030）",
     )
     serve.add_argument("--host", metavar="HOST", help="服务监听地址（默认 0.0.0.0）")
     serve.add_argument(
@@ -66,6 +69,13 @@ def build_settings(args: argparse.Namespace) -> Settings:
         for field in _SERVE_FIELDS
         if (value := getattr(args, field, None)) is not None
     }
+    selected_robot = getattr(args, "robot", None) or Settings().robot
+    if getattr(args, "robot", None) is not None:
+        overrides["robot"] = selected_robot
+    if (ip := getattr(args, "robot_ip", None)) is not None:
+        overrides["pi_ip" if selected_robot == "pi" else "nao_ip"] = ip
+    if (port := getattr(args, "robot_port", None)) is not None:
+        overrides["pi_rpc_port" if selected_robot == "pi" else "nao_port"] = port
     if getattr(args, "dry_run", False):
         overrides["dry_run"] = True
     return Settings(**overrides)

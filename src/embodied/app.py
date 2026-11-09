@@ -10,7 +10,8 @@ from fastmcp.utilities.lifespan import combine_lifespans
 
 from . import __version__
 from .api import build_mcp, install_handlers, router
-from .container import Container, build_container
+from .api.pi_rest import pi_router
+from .container import Container, PiContainer, build_container
 from .domain.errors import RobotError
 from .service.config import Settings
 
@@ -39,7 +40,8 @@ def _install_auth(app: FastAPI, settings: Settings) -> None:
 
 
 def create_app(
-    settings: Settings | None = None, container: Container | None = None
+    settings: Settings | None = None,
+    container: Container | PiContainer | None = None,
 ) -> FastAPI:
     settings = settings or Settings()
     container = container or build_container(settings)
@@ -62,13 +64,13 @@ def create_app(
     mcp_app = mcp.http_app(path="/")
 
     app = FastAPI(
-        title="NAO Embodied",
+        title="TonyPi Embodied" if settings.robot == "pi" else "NAO Embodied",
         version=__version__,
         lifespan=combine_lifespans(app_lifespan, mcp_app.lifespan),
     )
     _install_auth(app, settings)
     install_handlers(app)
-    app.include_router(router)
+    app.include_router(pi_router if settings.robot == "pi" else router)
     app.mount(settings.mcp_path, mcp_app)
 
     app.state.container = container

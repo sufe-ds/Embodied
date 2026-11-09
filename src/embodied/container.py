@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import cast
 
 from .service import (
     AudioService,
@@ -22,7 +23,9 @@ from .service import (
 from .service.config import Settings
 from .service.fake_robot import FakeRobot
 from .service.movement_files import FileMovementRepository
-from .service.ports import RobotPort
+from .service.pi import TonyPiService
+from .service.pi_robot import TonyPiRobot
+from .service.ports import RobotPort, TonyPiPort
 from .service.qi_robot import QiRobot
 from .service.thread_jobs import ThreadJobQueue
 
@@ -43,7 +46,28 @@ class Container:
     jobs: JobService
 
 
-def build_container(settings: Settings, robot: RobotPort | None = None) -> Container:
+@dataclass
+class PiContainer:
+    settings: Settings
+    robot: RobotPort
+    gateway: GatewayService
+    camera: CameraService
+    tony_pi: TonyPiService
+
+
+def build_container(
+    settings: Settings, robot: RobotPort | None = None
+) -> Container | PiContainer:
+    if settings.robot == "pi":
+        pi_robot = robot or TonyPiRobot(settings)
+        return PiContainer(
+            settings=settings,
+            robot=pi_robot,
+            gateway=GatewayService(pi_robot),
+            camera=CameraService(pi_robot),
+            tony_pi=TonyPiService(cast(TonyPiPort, pi_robot)),
+        )
+
     robot = robot or (FakeRobot(settings) if settings.dry_run else QiRobot(settings))
     movements = FileMovementRepository(settings.movement_dir)
     queue = ThreadJobQueue()

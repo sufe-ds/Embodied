@@ -20,6 +20,14 @@ def _error(exc: RobotError) -> dict:
 
 
 def build_mcp(container: Any) -> FastMCP:
+    if hasattr(container, "tony_pi"):
+        from .pi_mcp import build_pi_mcp
+
+        return build_pi_mcp(container)
+    return build_nao_mcp(container)
+
+
+def build_nao_mcp(container: Any) -> FastMCP:
     mcp = FastMCP(
         "NAO Embodied",
         instructions=(

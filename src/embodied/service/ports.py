@@ -134,6 +134,33 @@ class RobotPort(ABC):
     ) -> Any: ...
 
 
+class TonyPiPort(ABC):
+    """TonyPi 原生 JSON-RPC 能力。"""
+
+    @abstractmethod
+    def list_actions(self) -> dict[str, str]: ...
+
+    @abstractmethod
+    def run_action(self, name: str, times: int = 1) -> str: ...
+
+    @abstractmethod
+    def move_direction(self, direction: str, steps: int = 1) -> str: ...
+
+    @abstractmethod
+    def set_head(
+        self, horizontal: int, vertical: int, duration_ms: int = 500
+    ) -> None: ...
+
+    @abstractmethod
+    def list_vision_modes(self) -> dict[str, str]: ...
+
+    @abstractmethod
+    def start_vision_mode(self, mode: str) -> str: ...
+
+    @abstractmethod
+    def stop_vision_mode(self) -> None: ...
+
+
 class MovementRepository(ABC):
     """动作数据来源（文件、数据库或内存）。"""
 

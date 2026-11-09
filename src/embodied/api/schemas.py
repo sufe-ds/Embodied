@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -72,3 +74,20 @@ class CallRequest(BaseModel):
     service: str
     method: str
     args: list | None = None
+
+
+class PiActionRequest(BaseModel):
+    times: int = Field(1, ge=0, le=100)
+
+
+class PiMoveRequest(BaseModel):
+    direction: Literal[
+        "forward", "backward", "left", "right", "turn_left", "turn_right"
+    ]
+    steps: int = Field(1, ge=1, le=20)
+
+
+class PiHeadRequest(BaseModel):
+    horizontal: int = Field(1500, ge=500, le=2500)
+    vertical: int = Field(1500, ge=500, le=2500)
+    duration_ms: int = Field(500, ge=100, le=10000)

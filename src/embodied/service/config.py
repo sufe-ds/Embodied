@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -40,9 +41,14 @@ class Settings(BaseSettings):
         validate_by_name=True,
     )
 
-    # 机器人（NAOqi）
+    # 机器人类型与连接地址
+    robot: Literal["nao", "pi"] = Field("nao", validation_alias="EMBODIED_ROBOT")
     nao_ip: str = Field("127.0.0.1", validation_alias="NAO_IP")
     nao_port: int = Field(9559, validation_alias="NAO_PORT")
+    pi_ip: str = Field("192.168.149.1", validation_alias="EMBODIED_PI_IP")
+    pi_rpc_port: int = Field(9030, validation_alias="EMBODIED_PI_RPC_PORT")
+    pi_video_port: int = Field(8080, validation_alias="EMBODIED_PI_VIDEO_PORT")
+    pi_timeout_s: float = Field(5.0, validation_alias="EMBODIED_PI_TIMEOUT_S")
 
     # 服务
     host: str = Field("0.0.0.0", validation_alias="EMBODIED_HOST")

@@ -65,4 +65,43 @@ def test_entrypoint_dispatches_serve(monkeypatch) -> None:
 
     assert cli.main(["serve", "--robot-ip", "192.168.2.34"]) == 0
     assert seen["args"].command == "serve"
-    assert seen["args"].nao_ip == "192.168.2.34"
+    assert seen["args"].robot_ip == "192.168.2.34"
+
+
+def test_serve_pi_options_override_settings() -> None:
+    args = cli.build_parser().parse_args(
+        [
+            "serve",
+            "--robot",
+            "pi",
+            "--robot-ip",
+            "192.168.1.104",
+            "--robot-port",
+            "9031",
+            "--dry-run",
+        ]
+    )
+
+    settings = cli.build_settings(args)
+
+    assert settings.robot == "pi"
+    assert settings.pi_ip == "192.168.1.104"
+    assert settings.pi_rpc_port == 9031
+    assert settings.pi_video_port == 8080
+    assert settings.dry_run is True
+
+
+def test_robot_ip_uses_type_from_environment(monkeypatch) -> None:
+    monkeypatch.setenv("EMBODIED_ROBOT", "pi")
+    args = cli.build_parser().parse_args(["serve", "--robot-ip", "192.168.1.104"])
+
+    settings = cli.build_settings(args)
+
+    assert settings.robot == "pi"
+    assert settings.pi_ip == "192.168.1.104"
+
+
+def test_serve_default_robot_is_nao(monkeypatch) -> None:
+    monkeypatch.delenv("EMBODIED_ROBOT", raising=False)
+    settings = cli.build_settings(cli.build_parser().parse_args(["serve"]))
+    assert settings.robot == "nao"

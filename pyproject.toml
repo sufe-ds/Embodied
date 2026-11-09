@@ -1,7 +1,7 @@
 [project]
 name = "embodied"
 version = "0.1.0"
-description = "NAO 具身智能交互（Python 3 + qi）"
+description = "NAO 与 TonyPi 具身智能交互（REST + MCP）"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
