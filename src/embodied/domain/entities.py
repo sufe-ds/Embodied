@@ -73,14 +73,24 @@ class SpeechResult:
 
 @dataclass(frozen=True)
 class RobotAddress:
-    """局域网中探测到的一个 NAOqi 端点。"""
+    """局域网中探测到的一个机器人端点。"""
 
     ip: str
     port: int = 9559
     name: str | None = None
+    robot_type: str = "nao"
+    video_port: int | None = None
+    video_open: bool | None = None
 
     def to_dict(self) -> dict:
-        return {"ip": self.ip, "port": self.port, "name": self.name}
+        return {
+            "ip": self.ip,
+            "port": self.port,
+            "name": self.name,
+            "robot_type": self.robot_type,
+            "video_port": self.video_port,
+            "video_open": self.video_open,
+        }
 
 
 @dataclass

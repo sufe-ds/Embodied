@@ -9,9 +9,9 @@ import pytest
 
 from embodied import cli, discover
 from embodied.domain.entities import RobotAddress
-from embodied.domain.errors import ValidationError
+from embodied.domain.errors import RobotUnreachableError, ValidationError
 from embodied.service.discovery import DiscoveryService
-from embodied.service.network_scan import SubnetRobotLocator
+from embodied.service.network_scan import SubnetRobotLocator, TonyPiLocator
 from embodied.service.ports import RobotLocator
 
 
@@ -187,7 +187,9 @@ def test_cli_exits_nonzero_without_robots(capsys) -> None:
     code = discover.main([], service=service)
 
     assert code == 1
-    assert "未找到同时开放 9559 与 22" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "NAO（0 个候选）" in out
+    assert "TonyPi（0 个候选）" in out
 
 
 def test_entrypoint_dispatches_discover(capsys) -> None:
@@ -206,3 +208,151 @@ def test_entrypoint_dispatches_discover(capsys) -> None:
 def test_entrypoint_requires_command() -> None:
     with pytest.raises(SystemExit):
         cli.main([])
+
+
+def _tonypi(ip: str = "192.168.1.104", video_open: bool = True) -> RobotAddress:
+    return RobotAddress(
+        ip,
+        9030,
+        robot_type="tonypi",
+        video_port=8080,
+        video_open=video_open,
+    )
+
+
+def test_default_targets_adds_both_configured_subnets() -> None:
+    service = DiscoveryService(
+        StubLocator([]),
+        "192.168.2.34",
+        pi_locator=StubLocator([]),
+        pi_ip="192.168.1.104",
+    )
+
+    assert service.default_targets() == [
+        "10.0.0.0/24",
+        "192.168.2.0/24",
+        "192.168.1.0/24",
+    ]
+
+
+def test_tonypi_scan_verifies_rpc_and_video(monkeypatch) -> None:
+    locator = TonyPiLocator()
+    monkeypatch.setattr(locator, "_port_open", lambda host, port, timeout: True)
+
+    def echo(self, method, params=None):
+        assert method == "echo"
+        return params[0]
+
+    monkeypatch.setattr("embodied.service.network_scan.TonyPiRpcClient.call", echo)
+
+    result = locator.scan(["192.168.1.104"])
+
+    assert result == [_tonypi()]
+    assert result[0].robot_type == "tonypi"
+    assert result[0].video_open is True
+
+
+def test_tonypi_scan_rejects_rpc_failure(monkeypatch) -> None:
+    locator = TonyPiLocator()
+    monkeypatch.setattr(locator, "_port_open", lambda host, port, timeout: True)
+    monkeypatch.setattr(
+        "embodied.service.network_scan.TonyPiRpcClient.call",
+        lambda *args: (_ for _ in ()).throw(RobotUnreachableError("offline")),
+    )
+
+    assert locator.scan(["192.168.1.104"]) == []
+
+
+def test_tonypi_scan_reports_closed_video(monkeypatch) -> None:
+    locator = TonyPiLocator()
+    monkeypatch.setattr(locator, "_port_open", lambda host, port, timeout: port == 9030)
+    monkeypatch.setattr(
+        "embodied.service.network_scan.TonyPiRpcClient.call",
+        lambda self, method, params=None: params[0],
+    )
+
+    result = locator.scan(["192.168.1.104"])
+
+    assert result == [_tonypi(video_open=False)]
+    assert result[0].video_open is False
+
+
+def test_scan_groups_and_marks_both_configured_robots() -> None:
+    nao_locator = StubLocator([RobotAddress("192.168.2.34")])
+    pi_locator = StubLocator([_tonypi()])
+    service = DiscoveryService(
+        nao_locator,
+        "192.168.2.34",
+        pi_locator=pi_locator,
+        pi_ip="192.168.1.104",
+    )
+
+    result = service.scan(["192.168.1.0/24"])
+
+    assert result["counts"] == {"nao": 1, "tonypi": 1, "total": 2}
+    assert result["groups"]["nao"][0]["configured"] is True
+    assert result["groups"]["tonypi"][0]["configured"] is True
+    assert {item["robot_type"] for item in result["robots"]} == {"nao", "tonypi"}
+    assert len(nao_locator.calls) == 1
+    assert len(pi_locator.calls) == 1
+
+
+def test_scan_pi_filter_skips_nao() -> None:
+    nao_locator = StubLocator([RobotAddress("192.168.2.34")])
+    pi_locator = StubLocator([_tonypi()])
+    service = DiscoveryService(nao_locator, "192.168.2.34", pi_locator=pi_locator)
+
+    result = service.scan(["192.168.1.0/24"], robot="pi")
+
+    assert result["counts"] == {"nao": 0, "tonypi": 1, "total": 1}
+    assert nao_locator.calls == []
+    assert len(pi_locator.calls) == 1
+
+
+def test_cli_reports_separate_groups(capsys) -> None:
+    service = DiscoveryService(
+        StubLocator([RobotAddress("192.168.2.34")]),
+        "192.168.2.34",
+        pi_locator=StubLocator([_tonypi()]),
+        pi_ip="192.168.1.104",
+    )
+
+    code = discover.main(["192.168.1.0/24"], service=service)
+
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "NAO（1 个候选）" in out
+    assert "TonyPi（1 个候选）" in out
+    assert "RPC 9030 已验证" in out
+    assert "视频 8080 已开放" in out
+
+
+def test_cli_json_contains_groups(capsys) -> None:
+    service = DiscoveryService(
+        StubLocator([]),
+        "192.168.2.34",
+        pi_locator=StubLocator([_tonypi()]),
+        pi_ip="192.168.1.104",
+    )
+
+    code = discover.main(["--robot", "pi", "--json"], service=service)
+
+    assert code == 0
+    body = json.loads(capsys.readouterr().out)
+    assert body["groups"]["nao"] == []
+    assert body["groups"]["tonypi"][0]["ip"] == "192.168.1.104"
+    assert body["counts"] == {"nao": 0, "tonypi": 1, "total": 1}
+    assert body["robots"][0]["robot_type"] == "tonypi"
+
+
+def test_cli_filter_reports_only_selected_group(capsys) -> None:
+    service = DiscoveryService(
+        StubLocator([]), "192.168.2.34", pi_locator=StubLocator([_tonypi()])
+    )
+
+    code = discover.main(["--robot", "pi"], service=service)
+
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "TonyPi（1 个候选）" in out
+    assert "NAO（" not in out

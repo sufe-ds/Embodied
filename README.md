@@ -22,16 +22,23 @@ uv sync
 
 ## 使用
 
-### NAO
+### 机器人发现
 
-先用发现工具确认 NAO IP（并发探测 9559 与 22 端口，并校验 SSH 标识，不需要先启动服务）：
+发现工具默认并行扫描 NAO 与 TonyPi，并在文本和 JSON 中分组显示：
 
 ```sh
-uv run embodied discover 192.168.2.0/24
-uv run embodied discover --json        # 机器可读输出
+uv run embodied discover                         # 本机网段与已配置机器人所在网段
+uv run embodied discover 192.168.1.0/24         # 指定 IP 或 CIDR
+uv run embodied discover --robot nao            # 仅 NAO
+uv run embodied discover --robot pi             # 仅 TonyPi
+uv run embodied discover --json                  # 完整分组 JSON
 ```
 
-省略目标时扫描本机网段与 `NAO_IP` 所在网段。退出码 0 表示找到候选，1 表示未找到，2 表示参数或网络错误。双端口开放且 SSH 标识有效不代表设备一定是 NAO；该工具不用于发现 TonyPi。
+NAO 要求 9559 与 22 开放且 SSH 标识有效，仍属于候选地址，不是严格身份认证。TonyPi 要求 9030 的 JSON-RPC `echo` 验证通过，并单独报告 8080 视频端口是否开放；视频关闭不会排除已验证的 TonyPi。
+
+省略目标时扫描本机网段、`NAO_IP` 与 `EMBODIED_PI_IP` 所在 `/24`。JSON 的 `groups.nao` / `groups.tonypi` 提供分组，`counts` 提供数量；为兼容旧客户端，扁平 `robots` 列表仍保留，每条结果带 `robot_type`。退出码 0 表示任一类型发现候选，1 表示全部未发现，2 表示参数或网络错误。
+
+### NAO
 
 启动服务（参数优先于环境变量与 `.env`）：
 
@@ -153,7 +160,7 @@ uv build
 - `service/` — 应用服务与抽象端口。`qi_robot.py` 封装 NAOqi；`pi_client.py` / `pi_robot.py` 封装 TonyPi 原生 RPC、MJPG、动作与视觉模式；`fake_robot.py` 和 TonyPi 假传输用于 dry-run 与测试。
 - `api/` — `rest.py` 是 NAO 路由，`pi_rest.py` 是 TonyPi 路由；`mcp.py` / `pi_mcp.py` 分别注册两种工具集，不直接接触 `qi`。
 - `container.py` / `app.py` — 按 `Settings.robot` 构造 NAO `Container` 或 `PiContainer`，挂载对应路由和 MCP。
-- `cli.py` / `discover.py` — `serve` 支持两种机器人；`discover` 仍是独立 NAO 发现命令。
+- `cli.py` / `discover.py` — `serve` 支持两种机器人；`discover` 默认并行发现并按 NAO / TonyPi 分组，也可用 `--robot` 过滤。
 
 ### 开发笔记
 

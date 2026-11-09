@@ -35,7 +35,7 @@ src/embodied/
 ├── container.py        NAO Container / PiContainer 依赖注入组装根
 ├── app.py              FastAPI 与 MCP 应用装配、认证和生命周期
 ├── cli.py              embodied serve / discover 命令入口
-└── discover.py         独立 NAO 发现命令的参数、输出与退出码
+└── discover.py         NAO / TonyPi 分组发现命令的参数、输出与退出码
 ```
 
 ### 领域层 `domain/`
@@ -53,7 +53,7 @@ src/embodied/
 - `pi.py`：TonyPi 动作、方向移动、云台与视觉模式应用服务。
 - `jobs.py`：编排 NAO 动作/行为任务和取消；`thread_jobs.py` 是单后台 worker 的内存队列。TonyPi 原生 RPC 没有完成状态，不使用该队列。
 - `escape.py`：执行 NAOqi 逃生舱开关、服务白名单和方法拒绝策略。
-- `discovery.py`：整理扫描网段并标记当前配置地址；`network_scan.py` 并发探测 NAOqi 9559 与 SSH 22 端口，不用于 TonyPi。
+- `discovery.py`：整理两种配置网段，并行扫描并生成 `groups.nao` / `groups.tonypi` 与数量；保留扁平 `robots` 兼容旧客户端。`network_scan.py` 的 `SubnetRobotLocator` 探测 NAOqi 9559 与 SSH 22，`TonyPiLocator` 通过 9030 RPC echo 验证 TonyPi，并单独记录 8080 `video_open`。
 - `qi_robot.py`：NAO 适配器，封装 `qi.Session`、NAOqi 服务缓存、并发锁、摄像头后台订阅和硬件错误转换。
 - `pi_client.py`：TonyPi JSON-RPC 与 MJPG HTTP 客户端，以及 dry-run/测试使用的假 RPC 和假视频传输。Requests Session 禁用环境代理，避免局域网请求被代理截获。
 - `pi_robot.py`：TonyPi 适配器，实现原生动作、云台、视觉模式心跳、MJPG 帧缓存和公共生命周期/摄像头端口；NAO 专属 `RobotPort` 方法明确返回不支持，但不注册到 Pi API。
@@ -99,7 +99,7 @@ uv run python scripts/nao_vision.py 192.168.2.34
 - MCP：`http://localhost:19559/mcp/`
 - 健康检查：`/health`
 
-`discover` 省略目标时扫描本机 IPv4 的 `/24` 网段和已配置 NAO IP 所在 `/24`。它返回的是候选地址，不是严格的 NAO 身份认证。退出码为 0（发现候选）、1（未发现）、2（参数或网络错误）。扫描最多 4096 个地址，仅支持 IPv4。
+`discover` 支持 `--robot {all,nao,pi}`，默认 `all` 并行扫描两类并分节报告。省略目标时扫描本机 IPv4 `/24`、已配置 NAO 与 TonyPi IP 所在 `/24`。NAO 是端口/SSH 标识候选；TonyPi 必须通过 RPC echo，视频端口只作为附加状态。JSON 推荐读 `groups` 和 `counts`，扁平 `robots` 保留兼容。退出码为 0（任一类型发现）、1（全部未发现）、2（参数或网络错误）。每种扫描最多 4096 个地址，仅支持 IPv4。
 
 NAO 动作数据来自独立的外部目录，不会由 `uv build` 自动打包进 wheel。
 
@@ -202,5 +202,5 @@ uv run python -m pytest
 - NAO 逃生舱默认关闭。开启后仍受服务白名单和方法拒绝规则约束；白名单支持 `"*"`，但应避免在不可信环境使用。
 - NAO 动作仓储通过 `importlib` 执行目录中的 Python 文件。动作名正则只防止路径穿越，不能使文件内容变得安全；动作目录必须只包含受信任代码，且不可让未授权用户写入。
 - NAO 运动接口使用米、弧度和关节角；TonyPi 使用离散动作组、步态次数和舵机脉宽。两者都会造成真实硬件动作，视觉模式还可能自主运动。真实机器人验证前先使用 dry-run，确保周围空间安全，并保留独立的物理急停手段。
-- 网络发现会主动连接目标地址的 9559 和 22 端口，只扫描有权测试的网络。
+- 网络发现会主动连接目标地址的 9559、22、9030、8080，并向 9030 发送只读 RPC echo；只扫描有权测试的网络。
 - 生产运行方式是由 `embodied serve` 启动 Uvicorn；仓库没有进程守护、TLS 终止、反向代理或多 worker 部署方案。远程访问还需自行配置防火墙，MCP HTTP 客户端连接 `/mcp/`，stdio 客户端可按 README 使用 `fastmcp-remote` 桥接。

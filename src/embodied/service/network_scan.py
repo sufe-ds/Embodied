@@ -1,9 +1,4 @@
-"""局域网扫描：通过 NAOqi 端口与 SSH 标识定位机器人候选。
-
-NAOqi 没有可用的广播发现协议；WSL2 默认 NAT 也转发不了广播，
-因此这里并发探测 9559 与 22，并要求 SSH 服务返回有效标识。
-这些条件不代表设备一定是 NAO，结果视为候选。
-"""
+"""局域网扫描：分别通过 NAOqi/SSH 与 TonyPi RPC 定位机器人候选。"""
 
 from __future__ import annotations
 
@@ -13,7 +8,8 @@ from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from ..domain.entities import RobotAddress
-from ..domain.errors import ValidationError
+from ..domain.errors import RobotError, ValidationError
+from .pi_client import TonyPiRpcClient
 from .ports import RobotLocator
 
 _MAX_HOSTS = 4096
@@ -130,3 +126,59 @@ class SubnetRobotLocator(RobotLocator):
                 return ssh.recv(255).startswith(b"SSH-")
         except OSError:
             return False
+
+
+class TonyPiLocator(SubnetRobotLocator):
+    """通过原生 RPC echo 识别 TonyPi，并单独报告视频端口状态。"""
+
+    def __init__(
+        self,
+        port: int = 9030,
+        video_port: int = 8080,
+        max_hosts: int = _MAX_HOSTS,
+    ) -> None:
+        super().__init__(port, max_hosts)
+        self.video_port = video_port
+
+    def scan(
+        self, targets: list[str] | None = None, timeout_s: float = 0.3
+    ) -> list[RobotAddress]:
+        hosts = self._expand(targets if targets else self.local_subnets())
+        if not hosts:
+            return []
+        timeout = min(max(timeout_s, 0.05), 5.0)
+
+        found: list[RobotAddress] = []
+        with ThreadPoolExecutor(max_workers=min(_MAX_WORKERS, len(hosts))) as pool:
+            futures = {pool.submit(self._probe, host, timeout): host for host in hosts}
+            for future in as_completed(futures):
+                robot = future.result()
+                if robot is not None:
+                    found.append(robot)
+        return sorted(found, key=lambda robot: ipaddress.ip_address(robot.ip))
+
+    @staticmethod
+    def _port_open(host: str, port: int, timeout: float) -> bool:
+        try:
+            with socket.create_connection((host, port), timeout=timeout):
+                return True
+        except OSError:
+            return False
+
+    def _probe(self, host: str, timeout: float) -> RobotAddress | None:
+        if not self._port_open(host, self.port, timeout):
+            return None
+        token = "embodied-tonypi-discovery"
+        try:
+            result = TonyPiRpcClient(host, self.port, timeout).call("echo", [token])
+        except RobotError:
+            return None
+        if result != token:
+            return None
+        return RobotAddress(
+            host,
+            self.port,
+            robot_type="tonypi",
+            video_port=self.video_port,
+            video_open=self._port_open(host, self.video_port, timeout),
+        )

@@ -17,14 +17,16 @@ _SERVE_FIELDS = ("host", "port", "log_level")
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="embodied", description="NAO 具身智能交互")
+    parser = argparse.ArgumentParser(
+        prog="embodied", description="NAO 与 TonyPi 具身智能交互"
+    )
     parser.add_argument("--version", action="version", version=__version__)
     commands = parser.add_subparsers(dest="command", required=True)
 
     discover = commands.add_parser(
         "discover",
-        help="扫描局域网中的 NAO 机器人",
-        description="扫描局域网中的 NAO 机器人（探测 9559 与 22，并校验 SSH 标识）。",
+        help="分别扫描局域网中的 NAO 与 TonyPi",
+        description="分组发现 NAO 与 TonyPi，可用 --robot nao 或 --robot pi 单独扫描。",
     )
     add_arguments(discover)
 

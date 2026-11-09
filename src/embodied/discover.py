@@ -1,9 +1,9 @@
-"""机器人发现工具：启动服务前确认机器人 IP。
+"""机器人发现工具：启动服务前分别确认 NAO 与 TonyPi 地址。
 
-    uv run embodied discover [目标...] [--timeout 0.3] [--json]
+    uv run embodied discover [目标...] [--robot all|nao|pi] [--timeout 0.3] [--json]
 
-扫描不依赖服务进程，因此可以在配置 ``NAO_IP`` 之前使用。
-退出码：0 找到候选，1 未找到，2 参数或网络错误。
+扫描不依赖服务进程，因此可以在配置机器人 IP 之前使用。
+退出码：0 找到任一类型候选，1 未找到，2 参数或网络错误。
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ import sys
 from .domain.errors import RobotError
 from .service.config import Settings
 from .service.discovery import DiscoveryService
-from .service.network_scan import SubnetRobotLocator
+from .service.network_scan import SubnetRobotLocator, TonyPiLocator
 
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
@@ -23,7 +23,13 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         "targets",
         nargs="*",
         metavar="目标",
-        help="IP 或 CIDR 列表，省略则扫描本机网段与 NAO_IP 所在网段",
+        help="IP 或 CIDR 列表，省略则扫描本机网段与已配置机器人所在网段",
+    )
+    parser.add_argument(
+        "--robot",
+        choices=["all", "nao", "pi"],
+        default="all",
+        help="发现类型：全部、仅 NAO 或仅 TonyPi（默认 all）",
     )
     parser.add_argument(
         "--timeout",
@@ -38,7 +44,9 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m embodied.discover",
-        description="扫描局域网中的 NAO 机器人（探测 9559 与 22，并校验 SSH 标识）。",
+        description=(
+            "分别扫描 NAO（9559 + SSH 标识）与 TonyPi（9030 RPC 验证 + 8080 视频状态）。"
+        ),
     )
     add_arguments(parser)
     return parser
@@ -55,11 +63,18 @@ def run(args: argparse.Namespace, service: DiscoveryService | None = None) -> in
     if service is None:
         settings = Settings()
         service = DiscoveryService(
-            SubnetRobotLocator(settings.nao_port), settings.nao_ip, settings.nao_port
+            SubnetRobotLocator(settings.nao_port),
+            settings.nao_ip,
+            settings.nao_port,
+            pi_locator=TonyPiLocator(settings.pi_rpc_port, settings.pi_video_port),
+            pi_ip=settings.pi_ip,
+            pi_rpc_port=settings.pi_rpc_port,
         )
 
     try:
-        result = service.scan(args.targets or None, args.timeout)
+        result = service.scan(
+            args.targets or None, args.timeout, robot=getattr(args, "robot", "all")
+        )
     except RobotError as exc:
         print(f"扫描失败：{exc.message}", file=sys.stderr)
         return 2
@@ -72,19 +87,40 @@ def run(args: argparse.Namespace, service: DiscoveryService | None = None) -> in
 
 
 def _report(result: dict) -> None:
-    robots = result["robots"]
+    counts = result["counts"]
     targets = ", ".join(result["targets"]) or "无可用网段"
-    print(f"扫描 {targets}，用时 {result['elapsed_s']}s，发现 {len(robots)} 个候选：")
-    for robot in robots:
-        # name = robot["name"] or "-"
-        # mark = "  (当前 NAO_IP)" if robot["configured"] else ""
-        # print(f"  {robot['ip']}:{robot['port']}  {name}{mark}")
-        print(f"- {robot['ip']}")
-    if not robots:
+    print(
+        f"扫描 {targets}，用时 {result['elapsed_s']}s，发现 {counts['total']} 个候选："
+    )
+
+    if result["selected_robot"] in ("all", "nao"):
+        nao = result["groups"]["nao"]
+        print(f"\nNAO（{len(nao)} 个候选）：")
+        if nao:
+            for robot in nao:
+                mark = "  （当前配置）" if robot["configured"] else ""
+                print(f"- {robot['ip']}  NAOqi {robot['port']}  SSH 标识有效{mark}")
+        else:
+            print("  未发现（要求 9559 与 22 开放，且 SSH 标识有效）")
+
+    if result["selected_robot"] in ("all", "pi"):
+        tonypi = result["groups"]["tonypi"]
+        print(f"\nTonyPi（{len(tonypi)} 个候选）：")
+        if tonypi:
+            for robot in tonypi:
+                video = "已开放" if robot["video_open"] else "未开放"
+                mark = "  （当前配置）" if robot["configured"] else ""
+                print(
+                    f"- {robot['ip']}  RPC {robot['port']} 已验证  "
+                    f"视频 {robot['video_port']} {video}{mark}"
+                )
+        else:
+            print("  未发现（要求 9030 开放且 JSON-RPC echo 验证通过）")
+
+    if not result["robots"]:
         print(
-            "未找到同时开放 9559 与 22 且 SSH 标识有效的地址。请确认机器人已开机、与本机同网段；"
+            "\n请确认机器人已开机并与本机处于同一网段；容器或 WSL NAT 下请显式传入目标网段。"
         )
-        print("若本机是容器或 WSL NAT 网段，请显式传入机器人所在网段。")
 
 
 def main(argv: list[str] | None = None, service: DiscoveryService | None = None) -> int:
